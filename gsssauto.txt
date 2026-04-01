@@ -1,0 +1,52 @@
+function saveFullPageScreenshot() {
+  var apiKey   = '8b11182c3b4b487781ee5e8c66848144';
+  var folderId = '1pt6NR0AgJoC1FEaKdtqIZEAp2l301i23';
+  
+  // URLのリスト
+  var urls = [
+    'https://gogo.gs',
+    'https://gogo.gs/40',
+    'https://gogo.gs/41',
+    'https://gogo.gs/42',
+    'https://gogo.gs/43',
+    'https://gogo.gs/44',
+    'https://gogo.gs/45',
+    'https://gogo.gs/46',
+    'https://gogo.gs/47'
+  ];
+
+  var today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyyMMdd');
+  var folder = DriveApp.getFolderById(folderId);
+
+  // URLひとつひとつに対して処理を繰り返す
+  urls.forEach(function(url, index) {
+    // APIリクエストURLの組み立て（ループの中で毎回作成が必要）
+    var apiUrl = 'https://api.apiflash.com/v1/urltoimage'
+               + '?access_key=' + apiKey
+               + '&url='        + encodeURIComponent(url)
+               + '&full_page=true'
+               + '&fresh=true';
+
+    try {
+      var response = UrlFetchApp.fetch(apiUrl);
+
+      if (response.getResponseCode() === 200) {
+        var imageBlob = response.getBlob();
+        
+        // ファイル名が重複しないよう、日付 + インデックス(番号) をつける工夫
+        // 例: 20240520_0.png, 20240520_1.png ...
+        var filename = today + '_' + index + '.png';
+        
+        folder.createFile(imageBlob).setName(filename);
+        Logger.log('Success: ' + url + ' を保存しました (' + filename + ')');
+      } else {
+        Logger.log('Failed: ' + url + ' - ' + response.getContentText());
+      }
+    } catch (e) {
+      Logger.log('Error (' + url + '): ' + e.toString());
+    }
+    
+    // APIの負荷軽減や制限回避のため、少しだけ待機（必要に応じて）
+    Utilities.sleep(1000); 
+  });
+}
